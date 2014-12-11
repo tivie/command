@@ -281,7 +281,9 @@ class Command
 
     public function chain()
     {
-
+        $chain = new Chain();
+        $chain->add($this);
+        return $chain;
     }
 
     private function exec($cmd, Result $result)
