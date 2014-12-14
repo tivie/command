@@ -27,7 +27,7 @@ $cmd->setCommand('php testCmd.php')
     ->addArgument('bar', 'barVal')
     ->setStdIn('my stdin');
 
-$cmd1 = new \Tivie\Command\Command();
+$cmd1 = new \Tivie\Command\Command(\Tivie\Command\FORCE_USE_PROC_OPEN);
 $cmd1->setCommand('echo')->addArgument('foo');
 
 $cmd2 = new \Tivie\Command\Command();
@@ -39,6 +39,6 @@ $cmd3->setCommand('mkdir');
 $cmd4 = new \Tivie\Command\Command();
 $cmd4->setCommand('dir');
 
-$results = $cmd1->chain()->add($cmd2, \Tivie\Command\RUN_PIPE)->add($cmd3, \Tivie\Command\RUN_IF_PREVIOUS_SUCCEEDS)->run();
+$results = $cmd1->chain()->add($cmd2, \Tivie\Command\RUN_PIPE)->run();
 
 var_dump($results);

@@ -2,7 +2,6 @@
 
 echo "On windows, when using Exec and stdIn is empty, press enter!".PHP_EOL;
 
-
 stream_set_blocking(STDIN, false);
 $stdIn = fgets(STDIN);
 

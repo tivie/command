@@ -21,20 +21,28 @@
 
 namespace Tivie\Command;
 
+require_once(__DIR__ . '/namespace.constants.php');
+
 use Tivie\Command\Exception\Exception;
 use Tivie\Command\Exception\InvalidArgumentException;
 
-//FLAGS
-const FORCE_USE_PROC_OPEN         = 1;
-const DONT_ESCAPE                 = 2;
-const DONT_ADD_SPACE_BEFORE_VALUE = 4;
-
+/**
+ * Class Command
+ * An utility class that provides a safer way to run system commands
+ *
+ * @package Tivie\Command
+ */
 class Command
 {
     /**
      * @var int
      */
     public $_runMode = 0;
+
+    /**
+     * @var bool
+     */
+    public $_pipe = false;
 
     /**
      * @var int
@@ -50,6 +58,11 @@ class Command
      * @var array[]
      */
     protected $arguments = array();
+
+    /**
+     * @var array
+     */
+    protected $unparsedArguments = array();
 
     /**
      * @var string
@@ -71,7 +84,14 @@ class Command
      */
     protected $os;
 
-    public function __construct($flags = null)
+    /**
+     * Create a new Command object
+     *
+     * @param int $flags
+     * @param OS $os
+     * @throws InvalidArgumentException
+     */
+    public function __construct($flags = null, OS $os = null)
     {
         if ($flags !== null) {
             if (!is_int($flags)) {
@@ -80,7 +100,7 @@ class Command
             $this->flags = $flags;
         }
 
-        $this->os = new OS();
+        $this->os = ($os) ? $os : new OS();
 
         $this->tmpDir = sys_get_temp_dir();
     }
@@ -114,18 +134,25 @@ class Command
     }
 
     /**
-     * @param string $argument
-     * @param mixed $value [optional] The value associated with the argument, if applicable
+     * Adds an argument to the command
+     *
+     * @param string $argument The argument name.
+     * @param mixed $value [optional] The value(s) associated with the argument, if applicable
+     * @param int $prepend [optional] If the argument should be prepended with dash, double-dash ou forward-slash
      * @return $this
      * @throws InvalidArgumentException
      */
-    public function addArgument($argument, $value = null)
+    public function addArgument($argument, $value = null, $prepend = null)
     {
         if (!is_string($argument)) {
             throw new InvalidArgumentException('string', 0);
         }
 
-        $argument = ($this->flags & DONT_ESCAPE) ? $argument : escapeshellcmd($argument);
+        if ($argument == null) {
+            throw new InvalidArgumentException('string', 0, 'Cannot be null');
+        }
+
+        $prepArgument = $this->prepareArgumentKey($argument, $prepend);
 
         $fValues = array();
 
@@ -137,18 +164,72 @@ class Command
             if (!is_null($val)) {
                 $fValues[] = ($this->flags & DONT_ESCAPE) ? $val : escapeshellarg($val);
             }
-            $this->arguments[$argument] = $fValues;
+            $this->arguments[$prepArgument] = $fValues;
+            $this->unparsedArguments[$argument] = $prepArgument;
         }
 
         return $this;
     }
 
+    private function prepareArgumentKey($argument, $prepend)
+    {
+        $argument = ($this->flags & DONT_ESCAPE) ? $argument : escapeshellcmd($argument);
+
+
+        if ($prepend === PREPEND_OS_DETECTION) {
+            switch ($this->os->detect()) {
+                case OS_WINDOWS:
+                    $prepend = PREPEND_WINDOWS_STYLE;
+                    break;
+                case OS_NIX:
+                    $prepend = PREPEND_UNIX_STYLE;
+                    break;
+            }
+        }
+
+        switch ($prepend){
+            case PREPEND_UNIX_STYLE:
+                $argument = (strlen($argument) === 1) ? "-$argument" : "--$argument";
+                break;
+
+            case PREPEND_WINDOWS_STYLE:
+                $argument = "/$argument";
+                break;
+        }
+        return $argument;
+    }
+
+    /**
+     * Remove an argument from command
+     *
+     * @param $argument
+     * @return $this
+     * @throws InvalidArgumentException
+     */
     public function removeArgument($argument)
     {
         if (!is_string($argument)) {
             throw new InvalidArgumentException('string', 0);
         }
+
+        // Passed an unparsed argument
+        if (isset($this->unparsedArguments[$argument])) {
+            $key = $this->unparsedArguments[$argument];
+            unset($this->unparsedArguments[$argument]);
+            unset($this->arguments[$key]);
+        }
+
+        //passed a parsed argument
+        if (in_array($argument, $this->unparsedArguments)) {
+            $keys = array_keys($this->unparsedArguments, $argument);
+            foreach ($keys as $k) {
+                unset($this->unparsedArguments[$k]);
+            }
+        }
+
         unset($this->arguments[$argument]);
+
+        return $this;
     }
 
     /**
@@ -165,6 +246,10 @@ class Command
             throw new InvalidArgumentException('string', 0);
         }
 
+        if (isset($this->unparsedArguments[$argument])) {
+            $argument = $this->unparsedArguments[$argument];
+        }
+
         if (isset($this->arguments[$argument])) {
             if (count($this->arguments[$argument]) > 1) {
                 return $this->arguments[$argument];
@@ -175,22 +260,6 @@ class Command
             }
         }
         throw new Exception("Argument $argument isn't set");
-    }
-
-    /**
-     * Sets the arguments to be passed to the command
-     *
-     * @param array $arguments The arguments to be passed with the command
-     * @return $this
-     * @throws InvalidArgumentException If $arguments is not an array of strings
-     */
-    public function setArguments(array $arguments = array())
-    {
-        foreach ($arguments as $key=>$val) {
-            $this->addArgument($key, $val);
-        }
-
-        return $this;
     }
 
     /**
@@ -227,30 +296,8 @@ class Command
     }
 
     /**
-     * @return $this
-     */
-    public function build()
-    {
-        $cmd = $this->command;
-
-        foreach ($this->arguments as $arg => $valArray) {
-            if (empty($valArray)) {
-                $cmd .= " $arg";
-                continue;
-            }
-
-            foreach ($valArray as $val) {
-                $cmd .= " $arg";
-                $cmd .= ($this->flags & DONT_ADD_SPACE_BEFORE_VALUE) ? '' : ' ';
-                $cmd .= $val;
-            }
-        }
-        $this->builtCommand = $cmd;
-
-        return $this;
-    }
-
-    /**
+     * Get the built command
+     *
      * @return string
      */
     public function getBuiltCommand()
@@ -261,17 +308,28 @@ class Command
         return $this->builtCommand;
     }
 
+    /**
+     * Returns a string representation of the command
+     *
+     * @return string
+     */
     public function __toString()
     {
         return $this->getBuiltCommand();
     }
 
-
-    public function run()
+    /**
+     * Runs the command and returns a result object
+     *
+     * @param Result $result [optional] You can pass a result object to store the result of the runned command
+     * @return Result An object containing the result of the command
+     */
+    public function run(Result $result = null)
     {
         $cmd = $this->getBuiltCommand();
 
-        $result = new Result();
+        $result = ($result) ? $result : new Result();
+
         if ($this->os->detect() === OS_WINDOWS && !($this->flags & FORCE_USE_PROC_OPEN)) {
             return $this->exec($cmd, $result);
         } else {
@@ -279,14 +337,27 @@ class Command
         }
     }
 
-    public function chain()
+    /**
+     *
+     * @param Chain $chain
+     * @return Chain
+     */
+    public function chain(Chain $chain = null)
     {
-        $chain = new Chain();
+        $chain = ($chain) ? $chain : new Chain();
         $chain->add($this);
         return $chain;
     }
 
-    private function exec($cmd, Result $result)
+    /**
+     * Method to run the command using exec
+     *
+     * @param string $cmd The command string
+     * @param Result $result A result object used to store the result of the command
+     * @return Result The command's result
+     * @throws Exception
+     */
+    protected function exec($cmd, Result $result)
     {
         //Tmp file to store stderr
         $tempStdErr = tempnam($this->tmpDir, 'cmr');
@@ -320,18 +391,14 @@ class Command
         return $result;
     }
 
-    private function createFauxStdIn($stdIn)
-    {
-        $tempFile = tempnam($this->tmpDir, 'cmr');
-
-        if (!file_put_contents($tempFile, $stdIn)) {
-            throw new Exception("Error creating temporary file $tempFile");
-        }
-
-        return $tempFile;
-    }
-
-    private function procOpen($cmd, Result $result)
+    /**
+     * Method to run the command using proc_open
+     *
+     * @param string $cmd The command string
+     * @param Result $result A result object used to store the result of the command
+     * @return Result The command's result
+     */
+    protected function procOpen($cmd, Result $result)
     {
         $spec = array(
             0 => array("pipe", "r"), // STDIN
@@ -345,6 +412,8 @@ class Command
         $process = proc_open($cmd, $spec, $pipes);
 
         if (is_resource($process)) {
+
+            $result->setStdIn($this->stdIn);
 
             if ($this->stdIn !== null) {
                 fwrite($pipes[0], $this->stdIn);
@@ -361,5 +430,42 @@ class Command
         }
 
         return $result;
+    }
+
+    /**
+     * Method used to build the command with arguments
+     *
+     * @return $this
+     */
+    protected function build()
+    {
+        $cmd = $this->command;
+
+        foreach ($this->arguments as $arg => $valArray) {
+            if (empty($valArray)) {
+                $cmd .= " $arg";
+                continue;
+            }
+
+            foreach ($valArray as $val) {
+                $cmd .= " $arg";
+                $cmd .= ($this->flags & DONT_ADD_SPACE_BEFORE_VALUE) ? '' : ' ';
+                $cmd .= $val;
+            }
+        }
+        $this->builtCommand = $cmd;
+
+        return $this;
+    }
+
+    private function createFauxStdIn($stdIn)
+    {
+        $tempFile = tempnam($this->tmpDir, 'cmr');
+
+        if (!file_put_contents($tempFile, $stdIn)) {
+            throw new Exception("Error creating temporary file $tempFile");
+        }
+
+        return $tempFile;
     }
 }

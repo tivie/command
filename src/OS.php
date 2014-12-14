@@ -21,13 +21,10 @@
 
 namespace Tivie\Command;
 
-const RUN_REGARDLESS           = 0;
-const RUN_IF_PREVIOUS_SUCCEEDS = 1;
-const RUN_IF_PREVIOUS_FAILS    = 2;
-const RUN_PIPE                 = 3;
+require_once(__DIR__ . '/namespace.constants.php');
 
-const OS_NIX                   = 1;
-const OS_WINDOWS               = 2;
+use Tivie\Command\Exception\DomainException;
+use Tivie\Command\Exception\InvalidArgumentException;
 
 class OS
 {
@@ -42,9 +39,12 @@ class OS
         RUN_REGARDLESS           => ';',
         RUN_IF_PREVIOUS_SUCCEEDS => '&&',
         RUN_IF_PREVIOUS_FAILS    => '||',
-        RUN_PIPE                 => '|'
+        PIPE                     => '|'
     );
 
+    /**
+     * Create a new OS detection class
+     */
     public function __construct()
     {
         $os = $this->detect();
@@ -54,6 +54,11 @@ class OS
         }
     }
 
+    /**
+     * Detect the OS this server is running on
+     *
+     * @return int
+     */
     public function detect()
     {
         if (is_null(self::$os)) {
@@ -66,8 +71,22 @@ class OS
         return self::$os;
     }
 
+    /**
+     * The symbol used for chaining methods
+     *
+     * @param int $symbol
+     * @return mixed
+     * @throws DomainException
+     * @throws InvalidArgumentException
+     */
     public function getSymbol($symbol)
     {
+        if (!is_int($symbol)) {
+            throw new InvalidArgumentException('integer', 0);
+        }
+        if (!array_key_exists($symbol, $this->symbols)) {
+            throw new DomainException('Unrecognized symbol constant');
+        }
         return $this->symbols[$symbol];
     }
 }
