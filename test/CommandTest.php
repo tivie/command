@@ -194,9 +194,16 @@ class CommandTest extends \PHPUnit_Framework_TestCase
     {
         $cmd = new Command(null, $this->os);
 
-        $cmd->setCommand('foo')->addArgument('bar', 'barVal')->addArgument('baz', array('bazval1', 'bazval2'));
+        $a1K = 'bar';
+        $a1V = 'barVal';
+        $a2K = 'baz';
+        $a2V = array('bazval1', 'bazval2');
 
-        $expCmd = 'foo bar "barVal" baz "bazval1" baz "bazval2"';
+        $cmd->setCommand('foo')
+            ->addArgument($a1K, $a1V)
+            ->addArgument($a2K, $a2V);
+
+        $expCmd = 'foo '.$a1K.' '.escapeshellarg($a1V).' '.$a2K.' '.escapeshellarg($a2V[0]).' baz ' . escapeshellarg($a2V[1]);
 
         self::assertEquals($expCmd, $cmd->getBuiltCommand());
     }
