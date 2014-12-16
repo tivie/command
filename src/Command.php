@@ -25,6 +25,9 @@ require_once(__DIR__ . '/namespace.constants.php');
 
 use Tivie\Command\Exception\Exception;
 use Tivie\Command\Exception\InvalidArgumentException;
+use Tivie\Command\OS\OSDetector;
+use Tivie\Command\OS\OSDetectorInterface;
+use Traversable;
 
 /**
  * Class Command
@@ -32,7 +35,7 @@ use Tivie\Command\Exception\InvalidArgumentException;
  *
  * @package Tivie\Command
  */
-class Command
+class Command implements \IteratorAggregate
 {
     /**
      * @var int
@@ -55,19 +58,9 @@ class Command
     protected $command;
 
     /**
-     * @var array[]
+     * @var Argument[]
      */
-    protected $arguments = array();
-
-    /**
-     * @var array
-     */
-    protected $unparsedArguments = array();
-
-    /**
-     * @var string
-     */
-    protected $builtCommand = null;
+    public $arguments = array();
 
     /**
      * @var mixed
@@ -80,7 +73,7 @@ class Command
     protected $tmpDir;
 
     /**
-     * @var OS
+     * @var OSDetector
      */
     protected $os;
 
@@ -88,10 +81,10 @@ class Command
      * Create a new Command object
      *
      * @param int $flags
-     * @param OS $os
+     * @param OSDetectorInterface $os
      * @throws InvalidArgumentException
      */
-    public function __construct($flags = null, OS $os = null)
+    public function __construct($flags = null, OSDetectorInterface $os = null)
     {
         if ($flags !== null) {
             if (!is_int($flags)) {
@@ -100,7 +93,7 @@ class Command
             $this->flags = $flags;
         }
 
-        $this->os = ($os) ? $os : new OS();
+        $this->os = ($os) ? $os : new OSDetector();
 
         $this->tmpDir = sys_get_temp_dir();
     }
@@ -136,67 +129,24 @@ class Command
     /**
      * Adds an argument to the command
      *
-     * @param string $argument The argument name.
+     * @param string|Argument $argument The argument name.
      * @param mixed $value [optional] The value(s) associated with the argument, if applicable
+     * @param int $os [optional] If the argument should only be passed in a determined OS. Passing null means the
+     * argument is passed in all environments. Default is null.
      * @param int $prepend [optional] If the argument should be prepended with dash, double-dash ou forward-slash
      * @return $this
      * @throws InvalidArgumentException
      */
-    public function addArgument($argument, $value = null, $prepend = null)
+    public function addArgument($argument, $value = null, $os = null, $prepend = null)
     {
-        if (!is_string($argument)) {
-            throw new InvalidArgumentException('string', 0);
+        if (!$argument instanceof Argument) {
+            $escape = !($this->flags & DONT_ESCAPE);
+            $argument = new Argument($argument, $value, $os, $escape, $prepend, $this->os);
         }
 
-        if ($argument == null) {
-            throw new InvalidArgumentException('string', 0, 'Cannot be null');
-        }
-
-        $prepArgument = $this->prepareArgumentKey($argument, $prepend);
-
-        $fValues = array();
-
-        if (!is_array($value)) {
-            $value = array($value);
-        }
-
-        foreach ($value as $val) {
-            if (!is_null($val)) {
-                $fValues[] = ($this->flags & DONT_ESCAPE) ? $val : escapeshellarg($val);
-            }
-            $this->arguments[$prepArgument] = $fValues;
-            $this->unparsedArguments[$argument] = $prepArgument;
-        }
+        $this->arguments[$argument->getIdentifier()] = $argument;
 
         return $this;
-    }
-
-    private function prepareArgumentKey($argument, $prepend)
-    {
-        $argument = ($this->flags & DONT_ESCAPE) ? $argument : escapeshellcmd($argument);
-
-
-        if ($prepend === PREPEND_OS_DETECTION) {
-            switch ($this->os->detect()) {
-                case OS_WINDOWS:
-                    $prepend = PREPEND_WINDOWS_STYLE;
-                    break;
-                case OS_NIX:
-                    $prepend = PREPEND_UNIX_STYLE;
-                    break;
-            }
-        }
-
-        switch ($prepend){
-            case PREPEND_UNIX_STYLE:
-                $argument = (strlen($argument) === 1) ? "-$argument" : "--$argument";
-                break;
-
-            case PREPEND_WINDOWS_STYLE:
-                $argument = "/$argument";
-                break;
-        }
-        return $argument;
     }
 
     /**
@@ -208,26 +158,34 @@ class Command
      */
     public function removeArgument($argument)
     {
-        if (!is_string($argument)) {
-            throw new InvalidArgumentException('string', 0);
+        if ($argument instanceof Argument) {
+            $key = $argument->getIdentifier();
+
+        } else if (is_string($argument)) {
+            $key = preg_replace('#^--|^-|^/#', '', $argument);
+
+        } else {
+            throw new InvalidArgumentException('string or Argument', 0);
         }
 
-        // Passed an unparsed argument
-        if (isset($this->unparsedArguments[$argument])) {
-            $key = $this->unparsedArguments[$argument];
-            unset($this->unparsedArguments[$argument]);
-            unset($this->arguments[$key]);
-        }
+        unset($this->arguments[$key]);
 
-        //passed a parsed argument
-        if (in_array($argument, $this->unparsedArguments)) {
-            $keys = array_keys($this->unparsedArguments, $argument);
-            foreach ($keys as $k) {
-                unset($this->unparsedArguments[$k]);
-            }
-        }
+        return $this;
+    }
 
-        unset($this->arguments[$argument]);
+    public function replaceArgument(Argument $oldArgument, Argument $newArgument)
+    {
+        $oldKey = $oldArgument->getIdentifier();
+        $newKey = $newArgument->getIdentifier();
+        $keys = array_keys($this->arguments);
+        $index = array_search($oldKey, $keys);
+
+        if ($index !== false) {
+            $keys[$index] = $newKey;
+            $array = array_combine($keys, $this->arguments);
+            $array[$newKey] = $newArgument;
+            $this->arguments = $array;
+        }
 
         return $this;
     }
@@ -235,31 +193,22 @@ class Command
     /**
      * Gets the argument values
      *
-     * @param string $argument The argument 'name'
-     * @return array|null The argument values array or null if not found
-     * @throws Exception If argument is not set
+     * @param string $argumentIdentifier The argument 'name'
+     * @return Argument The argument
      * @throws InvalidArgumentException If $argument is not a string
      */
-    public function getArgumentValue($argument)
+    public function getArgument($argumentIdentifier)
     {
-        if (!is_string($argument)) {
+        if (!is_string($argumentIdentifier)) {
             throw new InvalidArgumentException('string', 0);
         }
 
-        if (isset($this->unparsedArguments[$argument])) {
-            $argument = $this->unparsedArguments[$argument];
+        if (!isset($this->arguments[$argumentIdentifier])) {
+            return null;
         }
 
-        if (isset($this->arguments[$argument])) {
-            if (count($this->arguments[$argument]) > 1) {
-                return $this->arguments[$argument];
-            } else if (count($this->arguments[$argument]) === 1) {
-                return $this->arguments[$argument][0];
-            } else {
-                return null;
-            }
-        }
-        throw new Exception("Argument $argument isn't set");
+        return $this->arguments[$argumentIdentifier];
+
     }
 
     /**
@@ -302,10 +251,30 @@ class Command
      */
     public function getBuiltCommand()
     {
-        if ($this->builtCommand === null) {
-            $this->build();
+        $cmd = $this->command;
+
+        foreach ($this->arguments as $argument) {
+            $os = $argument->getOs();
+
+            if ($os && !($os & $this->os->detect()->def)) {
+                continue;
+            }
+
+            $key = $argument->getKey();
+            $values = $argument->getValues();
+
+            if (empty($values)) {
+                $cmd .= " $key";
+                continue;
+            }
+
+            foreach ($values as $val) {
+                $cmd .= " $key";
+                $cmd .= ($this->flags & DONT_ADD_SPACE_BEFORE_VALUE) ? '' : ' ';
+                $cmd .= $val;
+            }
         }
-        return $this->builtCommand;
+        return trim($cmd);
     }
 
     /**
@@ -330,7 +299,7 @@ class Command
 
         $result = ($result) ? $result : new Result();
 
-        if ($this->os->detect() === OS_WINDOWS && !($this->flags & FORCE_USE_PROC_OPEN)) {
+        if ($this->os->detect()->isWindows() && !($this->flags & FORCE_USE_PROC_OPEN)) {
             return $this->exec($cmd, $result);
         } else {
             return $this->procOpen($cmd, $result);
@@ -372,7 +341,7 @@ class Command
         if ($this->stdIn !== null) {
             $filename = $this->createFauxStdIn($this->stdIn);
 
-            if ($this->os->detect() === OS_WINDOWS) {
+            if ($this->os->detect()->isWindows()) {
                 $cat = "type $filename";
             } else {
                 $cat = "cat $filename";
@@ -381,7 +350,7 @@ class Command
             $cmd = "$cat | $cmd";
         }
 
-        exec("$cmd 2> $tempStdErr", $otp, $exitCode);
+        $result->setLastLine(trim(exec("$cmd 2> $tempStdErr", $otp, $exitCode)));
 
         $result->setStdIn($this->stdIn)
                ->setStdOut(implode(PHP_EOL, $otp))
@@ -427,35 +396,12 @@ class Command
             fclose($pipes[2]);
 
             $result->setExitCode(proc_close($process));
+
+            $lLine = explode(PHP_EOL, $result->getStdOut());
+            $result->setLastLine(array_pop($lLine));
         }
 
         return $result;
-    }
-
-    /**
-     * Method used to build the command with arguments
-     *
-     * @return $this
-     */
-    protected function build()
-    {
-        $cmd = $this->command;
-
-        foreach ($this->arguments as $arg => $valArray) {
-            if (empty($valArray)) {
-                $cmd .= " $arg";
-                continue;
-            }
-
-            foreach ($valArray as $val) {
-                $cmd .= " $arg";
-                $cmd .= ($this->flags & DONT_ADD_SPACE_BEFORE_VALUE) ? '' : ' ';
-                $cmd .= $val;
-            }
-        }
-        $this->builtCommand = $cmd;
-
-        return $this;
     }
 
     private function createFauxStdIn($stdIn)
@@ -467,5 +413,19 @@ class Command
         }
 
         return $tempFile;
+    }
+
+    /**
+     * Retrieve an external iterator
+     * @link http://php.net/manual/en/iteratoraggregate.getiterator.php
+     * @return Traversable An instance of an object implementing <b>Iterator</b> or
+     * <b>Traversable</b>
+     */
+    public function getIterator()
+    {
+        $array = $this->arguments;
+        array_unshift($array, $this->getCommand());
+
+        return new \ArrayIterator($array);
     }
 }

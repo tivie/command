@@ -1,6 +1,12 @@
 <phpunit bootstrap="test/bootstrap.php">
     <testsuites>
-        <testsuite name="tivie-command">
+        <testsuite name="classes">
+            <directory>test/classes</directory>
+        </testsuite>
+        <testsuite name="real">
+            <directory>test/real</directory>
+        </testsuite>
+        <testsuite name="full">
             <directory>test</directory>
         </testsuite>
     </testsuites>

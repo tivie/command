@@ -21,6 +21,8 @@
 
 namespace Tivie\Command;
 
+use Tivie\Command\Exception\InvalidArgumentException;
+
 require_once(__DIR__ . '/namespace.constants.php');
 
 /**
@@ -37,14 +39,6 @@ class Chain
     protected $commands = array();
 
     /**
-     * Create a new Chain object
-     */
-    public function __construct()
-    {
-
-    }
-
-    /**
      * Adds a new command to the chain
      *
      * @param Command $cmd The command object to add
@@ -52,7 +46,11 @@ class Chain
      *                  RUN_IF_PREVIOUS_SUCCEEDS Only run if the previous command is successful (returns exitcode 0)
      *                  RUN_IF_PREVIOUS_FAILS Only run if the previous command fails (returns exitcode != 0)
      *                  RUN_REGARDLESS - Default. Runs regardless of previous command exit code
-     * @param bool $pipe [optional] If the output of the previous command should be piped to this one. Default is false
+     * @param bool $pipe [optional] If the output of the previous command should be piped to this one.
+     *                              If set to true, it will look for an argument whose value is !!PIPE!! and replace it
+     *                              with the previous command STDOUT. If none is found, it will pass the previous command
+     *                              STDOUT as this command STDIN.
+     *                              Default is false.
      * @return $this
      */
     public function add(Command $cmd, $mode = RUN_REGARDLESS, $pipe = false)
@@ -90,7 +88,31 @@ class Chain
             }
 
             if ($cmd->_pipe) {
-                $cmd->setStdIn($result->getStdOut());
+                $stdOut = trim($result->getStdOut());
+                // Check if any argument
+                $isXArg = false;
+                foreach ($cmd as $key => $arg) {
+
+                    if ($arg instanceof Argument) {
+
+                        if (stripos($key, PIPE_PH) !== false) {
+                            $key = str_replace(PIPE_PH, $stdOut, $key);
+                            $arg->setKey($key);
+                        }
+
+                        $values = $arg->getValues();
+                        foreach ($values as $index => $val) {
+                            if (stripos($val, PIPE_PH) !== false) {
+                                $val = str_replace(PIPE_PH, $stdOut, $val);
+                                $arg->replaceValue($index, $val);
+                                $isXArg = true;
+                            }
+                        }
+                    }
+                }
+                if (!$isXArg) {
+                    $cmd->setStdIn($stdOut);
+                }
             }
 
             $resultArray[] = $result = $cmd->run();
