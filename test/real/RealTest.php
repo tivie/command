@@ -29,7 +29,7 @@ class RealTest extends \PHPUnit_Framework_TestCase
         if ($osDetect->detect()->isWindows()) {
             $cmdStr = 'ping -"n" "1" -"l" "32" "www.google.com"';
         } else {
-            $cmdStr = 'ping -"c" "1" -"s" "24" "www.google.com"';
+            $cmdStr = "ping -'c' '1' -'s' '24' 'www.google.com'";
         }
 
         self::assertEquals($cmdStr, $cmd1->getBuiltCommand());
