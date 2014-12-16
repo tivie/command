@@ -248,7 +248,7 @@ Source code: https://github.com/tivie/command
 
 ## License
 Command Library is released under Apache 2.0 license. For more information, please consult 
-the [LICENSE](https://github.com/tivie/php-htaccess-parser/blob/master/LICENSE) file in this repository or 
+the [LICENSE](https://github.com/tivie/commandr/blob/master/LICENSE) file in this repository or 
 http://www.apache.org/licenses/LICENSE-2.0.txt.
 
 [1]: https://github.com/tivie/command/blob/master/src/Result.php
