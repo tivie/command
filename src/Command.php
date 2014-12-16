@@ -132,15 +132,21 @@ class Command implements \IteratorAggregate
      * @param string|Argument $argument The argument name.
      * @param mixed $value [optional] The value(s) associated with the argument, if applicable
      * @param int $os [optional] If the argument should only be passed in a determined OS. Passing null means the
-     * argument is passed in all environments. Default is null.
+     *                           argument is passed in all environments. Default is null.
      * @param int $prepend [optional] If the argument should be prepended with dash, double-dash ou forward-slash
+     * @param bool $escape [optional] If the argument should be escaped. If null is passed, the Commands default escape
+     *                                setting is used
      * @return $this
-     * @throws InvalidArgumentException
      */
-    public function addArgument($argument, $value = null, $os = null, $prepend = null)
+    public function addArgument($argument, $value = null, $os = null, $prepend = null, $escape = null)
     {
         if (!$argument instanceof Argument) {
-            $escape = !($this->flags & DONT_ESCAPE);
+            if ($escape === null) {
+                $escape = !($this->flags & DONT_ESCAPE);
+            } else {
+                $escape = !!$escape;
+            }
+
             $argument = new Argument($argument, $value, $os, $escape, $prepend, $this->os);
         }
 

@@ -27,6 +27,17 @@ class Argument
 
     protected $osDetector;
 
+    /**
+     * Create a new Argument Object
+     *
+     * @param string $key
+     * @param string|array $value
+     * @param int $os
+     * @param bool $escape
+     * @param int $prepend
+     * @param OSDetectorInterface $osDetector
+     * @throws InvalidArgumentException
+     */
     public function __construct(
         $key,
         $value = null,
@@ -36,10 +47,6 @@ class Argument
         OSDetectorInterface $osDetector = null
     ) {
         $this->osDetector = ($osDetector) ? $osDetector : new OSDetector();
-
-        if ($key == null) {
-            throw new InvalidArgumentException('string', 0, 'Cannot be null');
-        }
 
         $this->setKey($key);
 
@@ -121,9 +128,14 @@ class Argument
      */
     public function setKey($key)
     {
+        if ($key == null) {
+            throw new InvalidArgumentException('string', 0, 'Cannot be null');
+        }
+
         if (!is_string($key)) {
             throw new InvalidArgumentException('string', 0);
         }
+
         $this->key = $key;
     }
 
