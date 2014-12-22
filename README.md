@@ -1,5 +1,7 @@
-Command  [![Build Status](https://travis-ci.org/tivie/command.svg?branch=master)](https://travis-ci.org/tivie/command)
-=======
+Command
+=======  
+[![Build Status](https://travis-ci.org/tivie/command.svg?branch=master)](https://travis-ci.org/tivie/command) [![Latest Stable Version](https://poser.pugx.org/tivie/command/v/stable.svg)](https://packagist.org/packages/tivie/command) [![License](https://poser.pugx.org/tivie/command/license.svg)](https://packagist.org/packages/tivie/command)
+
 
 A cross-platform PHP utility library that harmonizes OS differences and executes external programs in a safer way
 
