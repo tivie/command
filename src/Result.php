@@ -2,15 +2,15 @@
 /**
  * -- tivie-command --
  * Result.php created at 10-12-2014
- * 
+ *
  * Copyright 2014 Estevão Soares dos Santos
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -18,24 +18,22 @@
  * limitations under the License.
  **/
 
-
 namespace Tivie\Command;
-
 
 class Result
 {
     /**
-     * @var mixed
+     * @var string
      */
     protected $stdIn;
 
     /**
-     * @var mixed
+     * @var string
      */
     protected $stdOut;
 
     /**
-     * @var mixed
+     * @var string
      */
     protected $stdErr;
 
@@ -58,17 +56,18 @@ class Result
     }
 
     /**
-     * @param int $exitCode
+     * @param  int   $exitCode
      * @return $this
      */
     public function setExitCode($exitCode)
     {
         $this->exitCode = $exitCode;
+
         return $this;
     }
 
     /**
-     * @return mixed
+     * @return string
      */
     public function getStdErr()
     {
@@ -76,17 +75,18 @@ class Result
     }
 
     /**
-     * @param mixed $stdErr
+     * @param string $stdErr
      * @return $this
      */
     public function setStdErr($stdErr)
     {
         $this->stdErr = $stdErr;
+
         return $this;
     }
 
     /**
-     * @return mixed
+     * @return string
      */
     public function getStdIn()
     {
@@ -94,17 +94,18 @@ class Result
     }
 
     /**
-     * @param mixed $stdIn
+     * @param string $stdIn
      * @return $this
      */
     public function setStdIn($stdIn)
     {
         $this->stdIn = $stdIn;
+
         return $this;
     }
 
     /**
-     * @return mixed
+     * @return string
      */
     public function getStdOut()
     {
@@ -112,12 +113,13 @@ class Result
     }
 
     /**
-     * @param mixed $stdOut
+     * @param string $stdOut
      * @return $this
      */
     public function setStdOut($stdOut)
     {
         $this->stdOut = $stdOut;
+
         return $this;
     }
 
@@ -130,12 +132,13 @@ class Result
     }
 
     /**
-     * @param string $lastLine
+     * @param  string $lastLine
      * @return $this
      */
     public function setLastLine($lastLine)
     {
         $this->lastLine = $lastLine;
+
         return $this;
     }
 }

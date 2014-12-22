@@ -18,12 +18,7 @@
  * limitations under the License.
  **/
 
-
 namespace Tivie\Command;
-
-use Tivie\Command\Exception\InvalidArgumentException;
-
-require_once(__DIR__ . '/namespace.constants.php');
 
 /**
  * Class Chain
@@ -41,16 +36,16 @@ class Chain
     /**
      * Adds a new command to the chain
      *
-     * @param Command $cmd The command object to add
-     * @param int $mode [optional] one of the following constants:
-     *                  RUN_IF_PREVIOUS_SUCCEEDS Only run if the previous command is successful (returns exitcode 0)
-     *                  RUN_IF_PREVIOUS_FAILS Only run if the previous command fails (returns exitcode != 0)
-     *                  RUN_REGARDLESS - Default. Runs regardless of previous command exit code
-     * @param bool $pipe [optional] If the output of the previous command should be piped to this one.
-     *                              If set to true, it will look for an argument whose value is !!PIPE!! and replace it
-     *                              with the previous command STDOUT. If none is found, it will pass the previous command
-     *                              STDOUT as this command STDIN.
-     *                              Default is false.
+     * @param  Command $cmd  The command object to add
+     * @param  int     $mode [optional] one of the following constants:
+     *                       RUN_IF_PREVIOUS_SUCCEEDS Only run if the previous command is successful (returns exitcode 0)
+     *                       RUN_IF_PREVIOUS_FAILS Only run if the previous command fails (returns exitcode != 0)
+     *                       RUN_REGARDLESS - Default. Runs regardless of previous command exit code
+     * @param  bool    $pipe [optional] If the output of the previous command should be piped to this one.
+     *                       If set to true, it will look for an argument whose value is !!PIPE!! and replace it
+     *                       with the previous command STDOUT. If none is found, it will pass the previous command
+     *                       STDOUT as this command STDIN.
+     *                       Default is false.
      * @return $this
      */
     public function add(Command $cmd, $mode = RUN_REGARDLESS, $pipe = false)
@@ -74,7 +69,6 @@ class Chain
         $resultArray = array();
 
         for ($i = 0; $i < count($this->commands); ++$i) {
-
             $cmd = $this->commands[$i];
 
             if ($i === 0) {
@@ -83,20 +77,19 @@ class Chain
             }
 
             if (($cmd->_runMode === RUN_IF_PREVIOUS_SUCCEEDS && $result->getExitCode() !== 0) ||
-                ($cmd->_runMode === RUN_IF_PREVIOUS_FAILS && $result->getExitCode() === 0)) {
+                ($cmd->_runMode === RUN_IF_PREVIOUS_FAILS && $result->getExitCode() === 0)
+            ) {
                 continue;
             }
 
             if ($cmd->_pipe) {
                 $stdOut = trim($result->getStdOut());
-                // Check if any argument
+
                 $isXArg = false;
-                foreach ($cmd as $key => $arg) {
-
+                foreach ($cmd as $argIdx => $arg) {
                     if ($arg instanceof Argument) {
-
-                        if (stripos($key, PIPE_PH) !== false) {
-                            $key = str_replace(PIPE_PH, $stdOut, $key);
+                        if (stripos($arg->getKey(true), PIPE_PH) !== false) {
+                            $key = str_replace(PIPE_PH, $stdOut, $arg->getKey(true));
                             $arg->setKey($key);
                         }
 
@@ -117,6 +110,7 @@ class Chain
 
             $resultArray[] = $result = $cmd->run();
         }
+
         return $resultArray;
     }
 }

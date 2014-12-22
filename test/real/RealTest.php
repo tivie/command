@@ -8,25 +8,23 @@
 
 namespace Tivie\Command;
 
-
-use Tivie\Command\OS\OSDetector;
+use Tivie\OS\Detector;
 
 class RealTest extends \PHPUnit_Framework_TestCase
 {
-
     public function testWithPingCommand()
     {
-        $cmd1 = new Command();
+        $osDetect = new Detector();
+
+        $cmd1 = new Command(ESCAPE);
         $cmd1->setCommand('ping')
-            ->addArgument('-n', 1, \Tivie\Command\OS\WINDOWS_FAMILY)
-            ->addArgument('-l', 32, \Tivie\Command\OS\WINDOWS_FAMILY)
-            ->addArgument('-c', 1, \Tivie\Command\OS\UNIX_FAMILY)
-            ->addArgument('-s', 24, \Tivie\Command\OS\UNIX_FAMILY)
-            ->addArgument('www.google.com');
+            ->addArgument(new Argument('-n', 1, \Tivie\OS\WINDOWS_FAMILY))
+            ->addArgument(new Argument('-l', 32, \Tivie\OS\WINDOWS_FAMILY))
+            ->addArgument(new Argument('-c', 1, \Tivie\OS\UNIX_FAMILY))
+            ->addArgument(new Argument('-s', 24, \Tivie\OS\UNIX_FAMILY))
+            ->addArgument(new Argument('www.google.com'));
 
-        $osDetect = new OSDetector();
-
-        if ($osDetect->detect()->isWindows()) {
+        if ($osDetect->isWindowsLike()) {
             $cmdStr = 'ping -"n" "1" -"l" "32" "www.google.com"';
         } else {
             $cmdStr = "ping -'c' '1' -'s' '24' 'www.google.com'";
@@ -36,8 +34,8 @@ class RealTest extends \PHPUnit_Framework_TestCase
 
         $cmd2 = new Command();
         $cmd2->setCommand('php')
-            ->addArgument(__DIR__ . "/cmd.php")
-            ->addArgument('--hasStdIn');
+            ->addArgument(new Argument(__DIR__."/cmd.php"))
+            ->addArgument(new Argument('--hasStdIn'));
 
         $results = $cmd1->chain()
             ->add($cmd2, RUN_REGARDLESS, true)
@@ -48,21 +46,19 @@ class RealTest extends \PHPUnit_Framework_TestCase
         self::assertEquals(trim($results[0]->getStdOut()), $results[1]->getStdIn());
     }
 
-
     public function testPipeAsArgument()
     {
         $otp = 'foobar';
 
         $cmd1 = new Command();
         $cmd1->setCommand('php')
-            ->addArgument(__DIR__ . "/cmd.php")
-            ->addArgument('--otp', $otp);
+            ->addArgument(new Argument(__DIR__."/cmd.php"))
+            ->addArgument(new Argument('--otp', $otp));
 
         $cmd2 = new Command();
         $cmd2->setCommand('php')
-            ->addArgument(__DIR__ . "/cmd.php")
-            ->addArgument('--otp', PIPE_PH);
-
+            ->addArgument(new Argument(__DIR__."/cmd.php"))
+            ->addArgument(new Argument('--otp', PIPE_PH));
 
         $result = $cmd1->chain()->add($cmd2, null, true)->run();
 
@@ -75,14 +71,13 @@ class RealTest extends \PHPUnit_Framework_TestCase
 
         $cmd1 = new Command();
         $cmd1->setCommand('php')
-            ->addArgument(__DIR__ . "/cmd.php")
-            ->addArgument('--otp', $otp);
+            ->addArgument(new Argument(__DIR__."/cmd.php"))
+            ->addArgument(new Argument('--otp', $otp));
 
         $cmd2 = new Command();
         $cmd2->setCommand('php')
-            ->addArgument(__DIR__ . "/cmd.php")
-            ->addArgument(PIPE_PH);
-
+            ->addArgument(new Argument(__DIR__."/cmd.php"))
+            ->addArgument(new Argument(PIPE_PH));
 
         $result = $cmd1->chain()->add($cmd2, null, true)->run();
 

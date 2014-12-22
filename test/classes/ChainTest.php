@@ -8,7 +8,6 @@
 
 namespace Tivie\Command;
 
-
 class ChainTest extends \PHPUnit_Framework_TestCase
 {
     /**
@@ -46,6 +45,25 @@ class ChainTest extends \PHPUnit_Framework_TestCase
         self::assertSame($result4, $results[2]);
     }
 
+    private function getResultMock($stdOut, $exitCode = 0)
+    {
+        $mock = $this->getMockBuilder('\Tivie\Command\Command')
+            ->setMethods(array('getExitCode', 'getStdOut'))
+            ->getMock();
+
+        $mock->method('getExitCode')->willReturn($exitCode);
+        $mock->method('getStdOut')->willReturn($stdOut);
+
+        return $mock;
+    }
+
+    private function getCmdMock()
+    {
+        return $this->getMockBuilder('\Tivie\Command\Command')
+            ->setMethods(array('run', 'setStdIn'))
+            ->getMock();
+    }
+
     /**
      * @covers \Tivie\Command\Chain::add
      * @covers \Tivie\Command\Chain::run
@@ -63,13 +81,12 @@ class ChainTest extends \PHPUnit_Framework_TestCase
 
         $cmd2 = $this->getCmdMock();
         $arg1 = $this->getArgumentMock('bar', array(PIPE_PH));
-        $arg1->expects($this->once())->method('replaceValue')->with(0, escapeshellarg($xArg));
+        $arg1->expects($this->once())->method('replaceValue')->with(0, $xArg);
         $cmd2->addArgument($arg1);
 
         $chain->add($cmd2, RUN_IF_PREVIOUS_SUCCEEDS, true);
 
         $chain->run();
-
     }
 
     private function getArgumentMock()
@@ -78,24 +95,5 @@ class ChainTest extends \PHPUnit_Framework_TestCase
             ->setMethods(array('replaceValue'))
             ->setConstructorArgs(func_get_args())
             ->getMock();
-    }
-
-    private function getCmdMock()
-    {
-        return $this->getMockBuilder('\Tivie\Command\Command')
-                        ->setMethods(array('run', 'setStdIn'))
-                        ->getMock();
-    }
-
-    private function getResultMock($stdOut, $exitCode = 0)
-    {
-        $mock = $this->getMockBuilder('\Tivie\Command\Command')
-            ->setMethods(array('getExitCode', 'getStdOut'))
-            ->getMock();
-
-        $mock->method('getExitCode')->willReturn($exitCode);
-        $mock->method('getStdOut')->willReturn($stdOut);
-
-        return $mock;
     }
 }

@@ -32,13 +32,13 @@ class InvalidArgumentException extends Exception
     /**
      * Create a new InvalidArgumentException, an exception thrown if an argument is not of the expected type.
      *
-     * @param string $expectedType [required] The type expected
-     * @param int $argNum [required] The argument number that failed the type check. Note: $argNum is zero
-     *                                            based, that means if you wish to refer to the first argument, you
-     *                                            should pass 0 and not 1.
-     * @param string $message [optional] Exception message
-     * @param int $code [optional] Code of the exception
-     * @param \Exception $exception [optional] Previous Exception
+     * @param string     $expectedType [required] The type expected
+     * @param int        $argNum       [required] The argument number that failed the type check. Note: $argNum is zero
+     *                                 based, that means if you wish to refer to the first argument, you
+     *                                 should pass 0 and not 1.
+     * @param string     $message      [optional] Exception message
+     * @param int        $code         [optional] Code of the exception
+     * @param \Exception $exception    [optional] Previous Exception
      */
     public function __construct($expectedType, $argNum, $message = null, $code = 0, \Exception $exception = null)
     {
@@ -62,14 +62,14 @@ class InvalidArgumentException extends Exception
             $msg .= "{$trace['class']}{$trace['type']}{$trace['function']} ";
         } else {
             if ($trace['function']) {
-                $msg .= $trace['function'] . " ";
+                $msg .= $trace['function']." ";
             }
         }
 
         $msg .= 'expected ';
 
         if (is_int($argNum)) {
-            $msg .= 'argument ' . ($argNum + 1) . ' to be ';
+            $msg .= 'argument '.($argNum + 1).' to be ';
         }
 
         if (is_string($expectedType)) {
@@ -79,7 +79,7 @@ class InvalidArgumentException extends Exception
         }
 
         if (isset($trace['args'][$argNum])) {
-            $msg .= ", but got " . gettype($trace['args'][$argNum]) . " instead.";
+            $msg .= ", but got ".gettype($trace['args'][$argNum])." instead.";
         } else {
             $msg .= '.';
         }

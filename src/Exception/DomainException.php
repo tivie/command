@@ -32,8 +32,8 @@ class DomainException extends Exception
     /**
      * Exception thrown if a value does not adhere to a defined valid data domain.
      *
-     * @param string $message [optional] Exception message
-     * @param int $code [optional] Code of the exception
+     * @param string     $message   [optional] Exception message
+     * @param int        $code      [optional] Code of the exception
      * @param \Exception $exception [optional] Previous Exception
      */
     public function __construct($message = '', $code = 0, \Exception $exception = null)

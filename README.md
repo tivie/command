@@ -4,10 +4,9 @@ Command  [![Build Status](https://travis-ci.org/tivie/command.svg?branch=master)
 A cross-platform PHP utility library that harmonizes OS differences and executes external programs in a safer way
 
 ## Introduction
-PHP Command is a small lightweight utility library that enables you to run external programs or commands in a safer way.
-PHP Command also harmonizes the differences between Windows and Unix environments, removing the need to create specific
+Command is a small lightweight utility library that enables you to run external programs or commands in a safer way.
+It also harmonizes the differences between Windows and Unix environments, removing the need to create specific
 code for each platform.
-
 
 ##Features
 
@@ -16,7 +15,7 @@ code for each platform.
   - Object Oriented command builder with fluent interface
   - Argument escaping, for safer command calls
   - Command chaining with support for conditional calls and piping in both Windows and Unix environment
-  - ~~Run commands in background~~ (comming soon)
+  - ~~Run commands in background~~ (coming soon)
 
 ## Installation
 You can install it by cloning the git repository or using composer.
@@ -91,13 +90,23 @@ yourself a lot, with a lot of conditional checks.
 **With command library, you don't need to: it will do this work for you.**
 
 ```php
-$cmd = new \Tivie\Command\Command();
+$cmd = new \Tivie\Command\Command(\Tivie\Command\ESCAPE);
 $cmd->setCommand('ping')
-    ->addArgument('-n', 3, \Tivie\Command\OS\WINDOWS_FAMILY)
-    ->addArgument('-l', 32, \Tivie\Command\OS\WINDOWS_FAMILY)
-    ->addArgument('-c', 3, \Tivie\Command\OS\UNIX_FAMILY)
-    ->addArgument('-s', 24, \Tivie\Command\OS\UNIX_FAMILY)
-    ->addArgument('www.google.com');
+    ->addArgument(
+        new Argument('-n', 3, \Tivie\Command\OS\WINDOWS_FAMILY)
+    )
+    ->addArgument(
+        new Argument('-l', 32, \Tivie\Command\OS\WINDOWS_FAMILY)
+    )
+    ->addArgument(
+        new Argument('-c', 3, \Tivie\Command\OS\UNIX_FAMILY)
+    )
+    ->addArgument(
+        new Argument('-s', 24, \Tivie\Command\OS\UNIX_FAMILY)
+    )
+    ->addArgument(
+        new Argument('www.google.com')
+    );
     
 $result = $cmd->run();
 ```
@@ -119,11 +128,11 @@ Command library supports command chaining
 ```php
 $cmd1 = new \Tivie\Command\Command();
 $cmd1->setCommand('php')
-    ->addArgument('-v');
+    ->addArgument(new Argument('-v'));
 
 $cmd2 = new \Tivie\Command\Command();
 $cmd2->setCommand('echo')
-    ->addArgument('foo');
+    ->addArgument(new Argument('foo'));
     
 $results = $cmd1->chain()
                 ->add($cmd2)
@@ -202,20 +211,21 @@ keyword (placeholder) ***'!PIPE!'*** in the command's argument key and values an
 You will then need to pass true as the third argument in [`Chain::add()`][2] function, same as the above case.
 
 ```php
-$cmd2->addArgument('foo', \Tivie\Command\PIPE_PH); // PIPE_PH = '!PIPE!'
+$cmd2->addArgument(new Argument('foo'), \Tivie\Command\PIPE_PH); // PIPE_PH = '!PIPE!'
 $cmd1->chain()->add($cmd2, \Tivie\Command\RUN_REGARDLESS, true);
 ```
 
 ## Add support for other OS
 
-IF you need to more specific OS checks, you can add support for other OSes not in the list by extending the [OSDetector class][3] or creating a new class that implements [OSDetectorInterface][4].
+IF you need to more specific OS checks, you can extend [Detector class][3] or create a new class that implements [DetectorInterface][4].
+For further information, please read the [php-os-detector][5] documentation.
 
 Example:
 
 ```php
 const OS_2_WARP  = 65540; //65536 + 4
 
-class MyOSDetector extends \Tivie\Command\OS\OSDetector
+class MyOSDetector extends \Tivie\OS\Detector
 {
     public function detect()
     {
@@ -238,6 +248,7 @@ You don't need to create a new constant pertaining the new OS (you can use one o
 choose to do so, the new OS const value should be a unique number in the 2^n sequence plus the family the OS belongs
 to. In the example we chose 16th term (65536) plus the OS family (in this case, FAMILY_OTHER) which is 4.
 
+
 ## Contribute
 Feel free to contribute by forking or making suggestions.
 
@@ -253,5 +264,6 @@ http://www.apache.org/licenses/LICENSE-2.0.txt.
 
 [1]: https://github.com/tivie/command/blob/master/src/Result.php
 [2]: https://github.com/tivie/command/blob/master/src/Chain.php
-[3]: https://github.com/tivie/command/blob/master/src/OS/OSDetector.php
-[4]: https://github.com/tivie/command/blob/master/src/OS/OSDetectorInterface.php
+[3]: https://github.com/tivie/php-os-detector/blob/master/src/Detector.php
+[4]: https://github.com/tivie/php-os-detector/blob/master/src/DetectorInterface.php
+[5]: https://github.com/tivie/php-os-detector

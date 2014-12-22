@@ -8,14 +8,12 @@
 
 namespace Tivie\Command;
 
-
-use Tivie\Command\OS\OS;
-use Tivie\Command\OS\OSDetector;
+use Tivie\OS\Detector;
 
 class CommandTest extends \PHPUnit_Framework_TestCase
 {
     /**
-     * @var OSDetector
+     * @var Detector
      */
     protected $os;
 
@@ -28,7 +26,90 @@ class CommandTest extends \PHPUnit_Framework_TestCase
     {
         // Since it's an utility class (needed for testing)
         // We assume it's "error free"
-        $this->os = new OSDetector();
+        $this->os = new Detector();
+    }
+
+    private function getCmdMock($flags, $os)
+    {
+        $osMock = $this->getOSMock($os);
+        $cmdMock = $this->getMockBuilder('\Tivie\Command\Command')
+            ->setMethods(array('procOpen', 'exec'))
+            ->setConstructorArgs(array($flags, $osMock))
+            ->getMock();
+        return $cmdMock;
+    }
+
+    /**
+     * @param $os
+     * @return \Tivie\OS\Detector
+     */
+    private function getOSMock($os)
+    {
+        $mock = $this->getMockBuilder('\Tivie\OS\Detector')
+            ->setMethods(array('getType', 'getFamily', 'getKernelName', 'isWindowsLike', 'isUnixLike'))
+            ->getMock();
+
+        switch ($os) {
+            case \Tivie\OS\WINDOWS_FAMILY:
+                $mock->method('getType')->willReturn(\Tivie\OS\WINDOWS);
+                $mock->method('getFamily')->willReturn(\Tivie\OS\WINDOWS_FAMILY);
+                $mock->method('getKernelName')->willReturn('WINDOWS');
+                $mock->method('isWindowsLike')->willReturn(true);
+                $mock->method('isUnixLike')->willReturn(false);
+                break;
+            case \Tivie\OS\UNIX_FAMILY:
+                $mock->method('getType')->willReturn(\Tivie\OS\LINUX);
+                $mock->method('getFamily')->willReturn(\Tivie\OS\UNIX_FAMILY);
+                $mock->method('getKernelName')->willReturn('LINUX');
+                $mock->method('isWindowsLike')->willReturn(false);
+                $mock->method('isUnixLike')->willReturn(true);
+                break;
+            default:
+                trigger_error('SELECTED WRONG OS IN TEST');
+        }
+
+        return $mock;
+    }
+
+    /**
+     * @return \PHPUnit_Framework_MockObject_MockObject|\Tivie\Command\Result
+     */
+    private function getResultMock()
+    {
+        $methods = array(
+            'setStdIn',
+            'setStdOut',
+            'setStdErr',
+            'setExitCode',
+            'setLastLine',
+        );
+
+        $mock = $this->getMockBuilder('\Tivie\Command\Result')
+            ->setMethods($methods)
+            ->getMock();
+
+        foreach ($methods as $method) {
+            $mock->method($method)
+                ->willReturn($mock);
+        }
+
+        return $mock;
+    }
+
+    /**
+     * @return \PHPUnit_Framework_MockObject_MockObject | \Tivie\Command\Argument
+     */
+    private function getArgumentMock($key = null, $values = null)
+    {
+        $mock = $this->getMockBuilder('\Tivie\Command\Argument');
+
+        if (is_null($key)) {
+            $mock->disableOriginalConstructor();
+        } else {
+            $mock->setConstructorArgs(func_get_args());
+        }
+
+        return $mock->getMock();
     }
 
     /**
@@ -45,8 +126,9 @@ class CommandTest extends \PHPUnit_Framework_TestCase
         self::assertEquals($cmdName, $cmd->getCommand());
 
         //Escape test
-        $cmdName = 'foo; bar -baz';
-        //Linux uses \; Windows uses ^
+        $cmdName = 'foo&& bar -baz';
+        $cmd = new Command(ESCAPE, $this->os);
+        //Linux uses \ Windows uses ^
         $escapedName = escapeshellcmd($cmdName);
         $cmd->setCommand($cmdName);
         self::assertEquals($escapedName, $cmd->getCommand());
@@ -68,112 +150,20 @@ class CommandTest extends \PHPUnit_Framework_TestCase
     /**
      * @covers \Tivie\Command\Command::addArgument
      * @covers \Tivie\Command\Command::removeArgument
-     * @covers \Tivie\Command\Command::getArgumentValue
      * @covers \Tivie\Command\Command::getArguments
      */
     public function testAddRemoveArguments()
     {
-        $cmd = new Command(\Tivie\Command\DONT_ESCAPE, $this->os);
-        $arg = 'foo';
-
-        //Argument with no value
-        $cmd->addArgument($arg);
-        self::assertArrayHasKey($arg, $cmd->getArguments());
-        $cmd->removeArgument($arg);
-        self::assertArrayNotHasKey($arg, $cmd->getArguments());
-
-
-        //Argument with just one value
-        $value = 'foobar.txt';
-        $cmd->addArgument($arg, $value);
-        self::assertArrayHasKey($arg, $cmd->getArguments());
-        self::assertEquals($value, $cmd->getArgument($arg)->getValues()[0]);
-
-        //Argument with several values
-        $value = array('foo.txt', 'bar.txt', 'baz.txt');
-        $cmd->addArgument($arg, $value);
-        self::assertArrayHasKey($arg, $cmd->getArguments());
-        self::assertEquals($value, $cmd->getArgument($arg)->getValues());
-
-        //Escape argument key and value
         $cmd = new Command(null, $this->os);
-        $arg = 'foo&&bar';
-        $value = 'somefoo';
-        $cmd->addArgument($arg, $value);
-        self::assertArrayHasKey($arg, $cmd->getArguments());
-        self::assertEquals(escapeshellarg($value), $cmd->getArgument($arg)->getValues()[0]);
+        $arg = $this->getArgumentMock();
 
-        //unset escaped argument
-        $cmd->removeArgument($arg);
-        self::assertArrayNotHasKey(escapeshellcmd($arg), $cmd->getArguments());
-        self::assertArrayNotHasKey($arg, $cmd->getArguments());
-    }
-
-    /**
-     * @covers \Tivie\Command\Command::addArgument
-     * @covers \Tivie\Command\Command::removeArgument
-     * @covers \Tivie\Command\Command::getArgumentValue
-     * @covers \Tivie\Command\Command::getArguments
-     */
-    public function testAddRemoveArgumentsWithPrepend()
-    {
-        $cmd = new Command(DONT_ESCAPE, $this->os);
-        $value = 'foobar.txt';
-
-        //Linux Style (one char switch)
-        $arg = 'f';
-        $cmd->addArgument($arg, $value, null, PREPEND_UNIX_STYLE);
-        self::assertArrayHasKey($arg, $cmd->getArguments());
-        self::assertEquals("-$arg", $cmd->getArgument($arg)->getKey());
-        self::assertEquals(array($value), $cmd->getArgument($arg)->getValues());
-        self::assertArrayNotHasKey("--$arg", $cmd->getArguments());
-        self::assertArrayNotHasKey("/$arg", $cmd->getArguments());
+        $cmd->addArgument($arg);
+        $args = $cmd->getArguments();
+        self::assertTrue(isset($args[0]));
 
         $cmd->removeArgument($arg);
-        self::assertArrayNotHasKey($arg, $cmd->getArguments());
-        self::assertArrayNotHasKey("-$arg", $cmd->getArguments());
-
-        //Linux Style (string arg)
-        $arg = 'foo';
-        $cmd->addArgument($arg, $value, null, PREPEND_UNIX_STYLE);
-        self::assertArrayHasKey($arg, $cmd->getArguments());
-        self::assertEquals("--$arg", $cmd->getArgument($arg)->getKey());
-        self::assertEquals(array($value), $cmd->getArgument($arg)->getValues());
-        self::assertArrayNotHasKey("-$arg", $cmd->getArguments());
-        self::assertArrayNotHasKey("/$arg", $cmd->getArguments());
-
-        $cmd->removeArgument($arg);
-        self::assertArrayNotHasKey($arg, $cmd->getArguments());
-        self::assertArrayNotHasKey("--$arg", $cmd->getArguments());
-
-
-        //Windows Style (one char switch)
-        $arg = 'f';
-        $cmd->addArgument($arg, $value, null, PREPEND_WINDOWS_STYLE);
-        self::assertArrayHasKey($arg, $cmd->getArguments());
-        self::assertEquals("/$arg", $cmd->getArgument($arg)->getKey());
-        self::assertEquals(array($value), $cmd->getArgument($arg)->getValues());
-        self::assertArrayNotHasKey("-$arg", $cmd->getArguments());
-        self::assertArrayNotHasKey("--$arg", $cmd->getArguments());
-
-        $cmd->removeArgument($arg);
-        self::assertArrayNotHasKey($arg, $cmd->getArguments());
-        self::assertArrayNotHasKey("/$arg", $cmd->getArguments());
-
-        //Windows Style (one char switch)
-        $arg = 'foo';
-        $s = '/';
-        $sArg = $s . $arg;
-
-        $cmd->addArgument($sArg, $value, null,PREPEND_WINDOWS_STYLE);
-        self::assertArrayHasKey($arg, $cmd->getArguments());
-        self::assertEquals(array($value), $cmd->getArgument($arg)->getValues());
-        self::assertArrayNotHasKey("-$arg", $cmd->getArguments());
-        self::assertArrayNotHasKey("--$arg", $cmd->getArguments());
-
-        $cmd->removeArgument($arg);
-        self::assertArrayNotHasKey($arg, $cmd->getArguments());
-        self::assertArrayNotHasKey($sArg, $cmd->getArguments());
+        $args = $cmd->getArguments();
+        self::assertTrue(!isset($args[0]));
     }
 
     /**
@@ -204,11 +194,10 @@ class CommandTest extends \PHPUnit_Framework_TestCase
         $a2V = array('bazval1', 'bazval2');
 
         $cmd->setCommand('foo')
-            ->addArgument($a1K, $a1V)
-            ->addArgument($a2K, $a2V);
+            ->addArgument(new Argument($a1K, $a1V))
+            ->addArgument(new Argument($a2K, $a2V));
 
-        $expCmd = 'foo '.escapeshellarg($a1K).' '.escapeshellarg($a1V).' '.
-            escapeshellarg($a2K).' '.escapeshellarg($a2V[0]).' '.escapeshellarg($a2K).' '.escapeshellarg($a2V[1]);
+        $expCmd = "foo $a1K $a1V $a2K $a2V[0] $a2K $a2V[1]";
 
         self::assertEquals($expCmd, $cmd->getBuiltCommand());
     }
@@ -221,61 +210,19 @@ class CommandTest extends \PHPUnit_Framework_TestCase
         $resMock = $this->getMockBuilder('\Tivie\Command\Result')->getMock();
 
         //TEST exec method is called in windows environment
-        $cmd = $this->getCmdMock(null, \Tivie\Command\OS\WINDOWS_FAMILY);
+        $cmd = $this->getCmdMock(null, \Tivie\OS\WINDOWS_FAMILY);
         $cmd->expects($this->once())->method('exec');
         $cmd->run($resMock);
 
         //TEST procOpen method is called in windows environment with flag set to FORCE_USE_PROC_OPEN
-        $cmd = $this->getCmdMock(FORCE_USE_PROC_OPEN, \Tivie\Command\OS\WINDOWS_FAMILY);
+        $cmd = $this->getCmdMock(FORCE_USE_PROC_OPEN, \Tivie\OS\WINDOWS_FAMILY);
         $cmd->expects($this->once())->method('procOpen');
         $cmd->run($resMock);
 
         //TEST procOpen method is called in unix environment
-        $cmd = $this->getCmdMock(FORCE_USE_PROC_OPEN, \Tivie\Command\OS\UNIX_FAMILY);
+        $cmd = $this->getCmdMock(FORCE_USE_PROC_OPEN, \Tivie\OS\UNIX_FAMILY);
         $cmd->expects($this->once())->method('procOpen');
         $cmd->run($resMock);
-    }
-
-    private function getCmdMock($flags, $os)
-    {
-        $osMock = $this->getOSMock($os);
-        $cmdMock = $this->getMockBuilder('\Tivie\Command\Command')
-            ->setMethods(array('procOpen', 'exec'))
-            ->setConstructorArgs(array($flags, $osMock))
-            ->getMock();
-        return $cmdMock;
-    }
-
-    /**
-     * @param $os
-     * @return \Tivie\Command\OS\OSDetector
-     */
-    private function getOSMock($os)
-    {
-        $mock = $this->getMockBuilder('\Tivie\Command\OS\OSDetector')
-            ->setMethods(array('detect'))
-            ->getMock();
-
-        $osObj = new OS();
-
-        switch ($os) {
-            case \Tivie\Command\OS\WINDOWS_FAMILY:
-                $osObj->name = 'WINDOWS';
-                $osObj->family = \Tivie\Command\OS\WINDOWS_FAMILY;
-                $osObj->def = \Tivie\Command\OS\WINDOWS;
-                $mock->method('detect')->willReturn($osObj);
-                break;
-            case \Tivie\Command\OS\UNIX_FAMILY:
-                $osObj->name = 'LINUX';
-                $osObj->family = \Tivie\Command\OS\UNIX_FAMILY;
-                $osObj->def = \Tivie\Command\OS\LINUX;
-                $mock->method('detect')->willReturn($osObj);
-                break;
-            default:
-                trigger_error('SELECTED WRONG OS IN TEST');
-        }
-
-        return $mock;
     }
 
     /**
@@ -285,45 +232,19 @@ class CommandTest extends \PHPUnit_Framework_TestCase
     public function testRunOnWindows()
     {
         //MOCK OS WINDOWS
-        $osMock = $this->getOSMock(\Tivie\Command\OS\WINDOWS_FAMILY);
+        $osMock = $this->getOSMock(\Tivie\OS\WINDOWS_FAMILY);
 
         // Simulate running on windows (with exec)
         $cmd = new Command(null, $osMock);
         $expectedCmdOtp = 'hello';
+        $cmd->setCommand('php')->addArgument(new Argument('-r', "\"echo '$expectedCmdOtp';\"", null, false));
 
         $mock = $this->getResultMock();
-
         $mock->expects($this->once())
             ->method('setStdOut')
             ->with($this->equalTo($expectedCmdOtp));
 
-        $cmd->setCommand('php')->addArgument('-r', "echo '$expectedCmdOtp';");
-
         $cmd->run($mock);
-    }
-
-    /**
-     * @return \PHPUnit_Framework_MockObject_MockObject|\Tivie\Command\Result
-     */
-    private function getResultMock()
-    {
-        $methods = array(
-            'setStdIn',
-            'setStdOut',
-            'setStdErr',
-            'setExitCode',
-            'setLastLine');
-
-        $mock = $this->getMockBuilder('\Tivie\Command\Result')
-            ->setMethods($methods)
-            ->getMock();
-
-        foreach ($methods as $method) {
-            $mock->method($method)
-                ->willReturn($mock);
-        }
-
-        return $mock;
     }
 
     /**
@@ -333,19 +254,18 @@ class CommandTest extends \PHPUnit_Framework_TestCase
     public function testRunOnUnix()
     {
         //MOCK OS UNIX
-        $osMock = $this->getOSMock(\Tivie\Command\OS\UNIX_FAMILY);
+        $osMock = $this->getOSMock(\Tivie\OS\UNIX_FAMILY);
 
         // Simulate running on Unix (with PROC_OPEN)
-        $cmd = new Command(null, $osMock);
+        $cmd = new Command(ESCAPE, $osMock);
         $expectedCmdOtp = 'hello';
+        $cmd->setCommand('php')->addArgument(new Argument('-r', "\"echo 'hello';\"", null, false));
 
         $mock = $this->getResultMock();
 
         $mock->expects($this->once())
             ->method('setStdOut')
             ->with($this->equalTo($expectedCmdOtp));
-
-        $cmd->setCommand('php')->addArgument('-r', "echo '$expectedCmdOtp';");
 
         $cmd->run($mock);
     }

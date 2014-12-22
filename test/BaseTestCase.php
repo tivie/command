@@ -1,11 +1,11 @@
 <?php
+
 /**
  * Created by PhpStorm.
  * User: Estevao
  * Date: 03-12-2014
  * Time: 10:59
  */
-
 abstract class BaseTestCase extends \PHPUnit_Framework_TestCase
 {
     protected $testClass;

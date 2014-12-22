@@ -3,3 +3,4 @@ vendor/
 phpunit.phar
 composer.phar
 composer.lock
+php-cs-fixer.phar
