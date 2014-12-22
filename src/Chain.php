@@ -20,6 +20,10 @@
 
 namespace Tivie\Command;
 
+use Tivie\Command\Exception\Exception;
+use Tivie\OS\Detector;
+use Tivie\OS\DetectorInterface;
+
 /**
  * Class Chain
  * A Helper class that controls command chaining
@@ -32,6 +36,22 @@ class Chain
      * @var Command[]
      */
     protected $commands = array();
+
+    /**
+     * @var bool
+     */
+    protected $buildFirst = false;
+
+    /**
+     * @var DetectorInterface
+     */
+    protected $os;
+
+    public function __construct(DetectorInterface $os = null)
+    {
+        $this->os = ($os) ? $os : new Detector();
+    }
+
 
     /**
      * Adds a new command to the chain
@@ -58,11 +78,118 @@ class Chain
     }
 
     /**
+     * If called (with true), a command chain string will be constructed first, with command chaining operators and then run as
+     * a single command
+     *
+     * @param bool $bool [optional] Default is true
+     * @return $this
+     */
+    public function buildFirst($bool = true)
+    {
+        $this->buildFirst = !!$bool;
+
+        return $this;
+    }
+
+    /**
      * Runs the command chain
      *
      * @return Result[]
      */
     public function run()
+    {
+        if (count($this->commands) === 0) {
+            return '';
+        }
+        if ($this->buildFirst()) {
+            return $this->runAsSingleCommand();
+        } else {
+            return $this->runAsCommandSequence();
+        }
+    }
+
+    //find . -name “*.java” | xargs accurev keep -c “comment”
+    //FOR /F %k in (‘dir /s /b *.java’) DO accurev keep -c “comment” %k
+    private function runAsSingleCommand()
+    {
+        $cmdStr = $this->commands[0]->getBuiltCommand();
+
+        for ($i = 1; $i < count($this->commands); ++$i) {
+            $cmd = $this->commands[$i];
+
+            if ($cmd->_runMode === RUN_IF_PREVIOUS_SUCCEEDS) {
+                $cmdStr .= $cmd->getSymbol(RUN_IF_PREVIOUS_SUCCEEDS);
+
+            } else if ($cmd->_runMode === RUN_IF_PREVIOUS_FAILS) {
+                $cmdStr .= $cmd->getSymbol(RUN_IF_PREVIOUS_FAILS);
+
+            } else if ($cmd->_runMode === RUN_PIPED) {
+                $cmdStr .= $cmd->getSymbol(RUN_PIPED);
+
+            } else if ($cmd->_runMode === RUN_PIPE_AS_ARG) {
+                $this->parseXArgs($cmd, '%P');
+
+                if ($this->os->isWindowsLike()) {
+                    $cmdStr .= "FOR /F %P IN ('";
+                    $cmdStr .= $cmd->getBuiltCommand();
+                    $cmdStr .= "') DO ";
+
+                } else if ($this->os->isUnixLike()) {
+                    $this->parseXArgs($cmd, '%P');
+
+                } else {
+                    throw new Exception("Unsupported OS for mode RUN_PIPE_AS_ARG");
+                }
+
+
+            }
+
+            if ($cmd->_pipe) {
+
+
+
+
+
+
+            }
+
+            $cmdStr .= $cmd->getBuiltCommand();
+        }
+
+    }
+
+    private function parseXArgs(Command $cmd, $replacement)
+    {
+        $isXArg = false;
+
+        foreach ($cmd as $key => $arg) {
+
+            if ($arg instanceof Argument) {
+
+                // Replace !PIPE! in key
+                if (stripos($key, PIPE_PH) !== false) {
+                    $key = str_replace(PIPE_PH, $replacement, $key);
+                    $arg->setKey($key);
+                    $isXArg = true;
+                }
+
+                // Replace !PIPE! in args
+                $values = $arg->getValues();
+                foreach ($values as $index => $val) {
+
+                    if (stripos($val, PIPE_PH) !== false) {
+                        $val = str_replace(PIPE_PH, $replacement, $val);
+                        $arg->replaceValue($index, $val);
+                        $isXArg = true;
+                    }
+                }
+            }
+        }
+
+        return $isXArg;
+    }
+
+    private function runAsCommandSequence()
     {
         //Bogus variable set. The original value is never used, but IDEs complain
         $result = new Result();
@@ -113,4 +240,5 @@ class Chain
 
         return $resultArray;
     }
+
 }

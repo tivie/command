@@ -28,6 +28,7 @@ const RUN_REGARDLESS              = 0;
 const RUN_IF_PREVIOUS_SUCCEEDS    = 1;
 const RUN_IF_PREVIOUS_FAILS       = 2;
 const RUN_PIPED                   = 3;
+const RUN_PIPE_AS_ARG             = 4;
 
 const PIPE_PH = '!PIPE!';
 
@@ -86,6 +87,13 @@ class Command implements \IteratorAggregate
      */
     protected $os;
 
+    protected $symbolArray = array(
+        RUN_REGARDLESS => ';',
+        RUN_IF_PREVIOUS_SUCCEEDS => '&&',
+        RUN_IF_PREVIOUS_FAILS => '||',
+        RUN_PIPED => '|'
+    );
+
     /**
      * Create a new Command object
      *
@@ -102,9 +110,13 @@ class Command implements \IteratorAggregate
             $this->flags = $flags;
         }
 
+        $this->tmpDir = sys_get_temp_dir();
+
         $this->os = ($os) ? $os : new Detector();
 
-        $this->tmpDir = sys_get_temp_dir();
+        if ($this->os->isWindowsLike()) {
+            $this->symbolArray[RUN_REGARDLESS] = '&';
+        }
     }
 
     /**
@@ -496,5 +508,18 @@ class Command implements \IteratorAggregate
                 }
             }
         }
+    }
+
+    public function getSymbol($operator)
+    {
+        if (!is_int($operator)) {
+            throw new InvalidArgumentException('integer', 0);
+        }
+
+        if (!isset($this->symbolArray[$operator])) {
+            throw new DomainException("Unexpected integer");
+        }
+
+        return $this->symbolArray[$operator];
     }
 }
