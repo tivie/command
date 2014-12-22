@@ -34,7 +34,6 @@ if (isset($opts['otp'])) {
             "STDIN" => $stdIn,
             "NumOfArgs" => $argc,
             "Args" => $argv,
-        ),
-        JSON_PRETTY_PRINT
+        )
     );
 }
