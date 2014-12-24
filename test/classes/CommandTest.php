@@ -340,20 +340,30 @@ class CommandTest extends \PHPUnit_Framework_TestCase
         $dir = realpath(__DIR__ . $s. "..". $s . "dir" . $s . "test" . $s);
 
         if(!$dir) {
-            // soemthing went wrong setting the relative path so we inform and quick gracefully
+            // something went wrong setting the relative path so we inform and quick gracefully
             fwrite(STDERR, "CommandTest::testChdir() - Failed to discover the test directory in testChdir so the ".
                 "test was skipped");
             return;
         }
 
         $cmd = new Command();
-        $cmd->setCurrentWorkingDirectory($dir);
 
         if ($this->os->isWindowsLike()) {
             $cmd->setCommand('cd');
         } else {
             $cmd->setCommand('pwd');
         }
+
+        // Test with no working directory
+        $result = $this->getResultMock();
+        $result->expects($this->once())
+            ->method('setStdOut')
+            ->with($this->equalTo(realpath(getcwd())));
+
+        $cmd->run($result);
+
+        // Test with working directory
+        $cmd->setCurrentWorkingDirectory($dir);
 
         //Test with exec
         $cmd->setFlags(FORCE_USE_EXEC);
