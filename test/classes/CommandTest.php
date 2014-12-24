@@ -97,7 +97,9 @@ class CommandTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * @return \PHPUnit_Framework_MockObject_MockObject | \Tivie\Command\Argument
+     * @param null $key
+     * @param null $values
+     * @return \PHPUnit_Framework_MockObject_MockObject|Argument
      */
     private function getArgumentMock($key = null, $values = null)
     {
@@ -324,5 +326,53 @@ class CommandTest extends \PHPUnit_Framework_TestCase
     {
         $cmd = new Command();
         $cmd->setFlags('foo');
+    }
+
+    /**
+     * @covers \Tivie\Command\Command::chdir
+     * @covers \Tivie\Command\Command::setCurrentWorkingDirectory
+     * @covers \Tivie\Command\Command::exec
+     * @covers \Tivie\Command\Command::proc_open
+     */
+    public function testChdir()
+    {
+        $s = DIRECTORY_SEPARATOR;
+        $dir = realpath(__DIR__ . $s. "..". $s . "dir" . $s . "test" . $s);
+
+        if(!$dir) {
+            // soemthing went wrong setting the relative path so we inform and quick gracefully
+            fwrite(STDERR, "CommandTest::testChdir() - Failed to discover the test directory in testChdir so the ".
+                "test was skipped");
+            return;
+        }
+
+        $cmd = new Command();
+        $cmd->setCurrentWorkingDirectory($dir);
+
+        if ($this->os->isWindowsLike()) {
+            $cmd->setCommand('cd');
+        } else {
+            $cmd->setCommand('pwd');
+        }
+
+        //Test with exec
+        $cmd->setFlags(FORCE_USE_EXEC);
+
+        $result = $this->getResultMock();
+        $result->expects($this->once())
+            ->method('setStdOut')
+            ->with($this->equalTo($dir));
+
+        $cmd->run($result);
+
+        //Test with proc_open
+        $cmd->setFlags(FORCE_USE_PROC_OPEN);
+
+        $result = $this->getResultMock();
+        $result->expects($this->once())
+            ->method('setStdOut')
+            ->with($this->equalTo($dir));
+
+        $cmd->run($result);
     }
 }

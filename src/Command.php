@@ -23,6 +23,7 @@ namespace Tivie\Command;
 const FORCE_USE_PROC_OPEN         = 1;
 const ESCAPE                      = 2;
 const DONT_ADD_SPACE_BEFORE_VALUE = 4;
+const FORCE_USE_EXEC              = 8;
 
 const RUN_REGARDLESS              = 0;
 const RUN_IF_PREVIOUS_SUCCEEDS    = 1;
@@ -87,11 +88,17 @@ class Command implements \IteratorAggregate
     protected $os;
 
     /**
+     * @var string
+     */
+    private $cwd;
+
+    /**
      * Create a new Command object
      *
      * @param  int                      $flags
      * @param  DetectorInterface        $os
-     * @throws InvalidArgumentException
+     * @throws InvalidArgumentException If $flags is not an integer
+     * @throws DomainException If invalid flags are passed
      */
     public function __construct($flags = null, DetectorInterface $os = null)
     {
@@ -103,20 +110,25 @@ class Command implements \IteratorAggregate
 
         $this->tmpDir = sys_get_temp_dir();
     }
-    
+
     /**
      * Set the flags for this Command
      *
      * @param integer $flags
      * @return $this
      * @throws InvalidArgumentException If $flags is not an integer
+     * @throws DomainException
      */
     public function setFlags($flags)
     {
         if (!is_int($flags)) {
             throw new InvalidArgumentException('integer', 0);
         }
-        
+
+        if (($flags & FORCE_USE_PROC_OPEN) && ($flags & FORCE_USE_EXEC)) {
+            throw new DomainException("Invalid flags: FORCE_USE_PROC_OPEN and FORCE_USE_EXEC cannot be set at the same time");
+        }
+
         $this->flags = $flags;
 
         return $this;
@@ -348,7 +360,7 @@ class Command implements \IteratorAggregate
         $cmd = $this->getBuiltCommand();
 
         $result = ($result) ? $result : new Result();
-        if ($this->os->isWindowsLike() && !($this->flags & FORCE_USE_PROC_OPEN)) {
+        if (($this->os->isWindowsLike() && !($this->flags & FORCE_USE_PROC_OPEN)) || ($this->flags & FORCE_USE_EXEC)) {
             return $this->exec($cmd, $result);
         } else {
             return $this->procOpen($cmd, $result);
@@ -368,6 +380,44 @@ class Command implements \IteratorAggregate
         $chain->add($this);
 
         return $chain;
+    }
+
+    /**
+     * Set the command's new working directory (alias to chdir)
+     *
+     * @param string $dir The new working directory
+     * @param bool $check If $dir should be choked for existence
+     * @return $this
+     * @throws Exception If $dir does not exist or is not a directory
+     * @throws InvalidArgumentException If $dir is not a string
+     */
+    public function setCurrentWorkingDirectory($dir, $check = true)
+    {
+        return $this->chdir($dir, $check);
+    }
+
+    /**
+     * Set the command's new working directory
+     *
+     * @param string $dir The new working directory
+     * @param bool $check If $dir should be choked for existence
+     * @return $this
+     * @throws Exception If $dir does not exist or is not a directory
+     * @throws InvalidArgumentException If $dir is not a string
+     */
+    public function chdir($dir, $check = true)
+    {
+        if (!is_string($dir)) {
+            throw new InvalidArgumentException("string", 0);
+        }
+
+        if ($check && !is_dir($dir)) {
+            throw new Exception("No such directory $dir");
+        }
+
+        $this->cwd = $dir;
+
+        return $this;
     }
 
     /**
@@ -425,12 +475,21 @@ class Command implements \IteratorAggregate
             $cmd = "$cat | $cmd";
         }
 
+        //Set CWD
+        $prevCwd = getcwd();
+        if ($this->cwd != null) {
+            chdir($this->cwd);
+        }
+
         $result->setLastLine(trim(exec("$cmd 2> $tempStdErr", $otp, $exitCode)));
 
         $result->setStdIn($this->stdIn)
             ->setStdOut(implode(PHP_EOL, $otp))
             ->setStdErr(file_get_contents($tempStdErr))
             ->setExitCode($exitCode);
+
+        // restore CWD
+        chdir($prevCwd);
 
         return $result;
     }
@@ -453,7 +512,7 @@ class Command implements \IteratorAggregate
         $pipes = array();
         $exitCode = null;
 
-        $process = proc_open($cmd, $spec, $pipes);
+        $process = proc_open($cmd, $spec, $pipes, $this->cwd);
 
         if (is_resource($process)) {
             $result->setStdIn($this->stdIn);
@@ -463,16 +522,16 @@ class Command implements \IteratorAggregate
             }
             fclose($pipes[0]);
 
-            $result->setStdOut(stream_get_contents($pipes[1]));
+            $result->setStdOut(trim(stream_get_contents($pipes[1])));
             fclose($pipes[1]);
 
-            $result->setStdErr(stream_get_contents($pipes[2]));
+            $result->setStdErr(trim(stream_get_contents($pipes[2])));
             fclose($pipes[2]);
 
             $result->setExitCode(proc_close($process));
 
             $lLine = explode(PHP_EOL, $result->getStdOut());
-            $result->setLastLine(array_pop($lLine));
+            $result->setLastLine(trim(array_pop($lLine)));
         }
 
         return $result;
