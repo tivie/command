@@ -258,6 +258,9 @@ Issue tracker: https://github.com/tivie/command/issues
 
 Source code: https://github.com/tivie/command
 
+### Contributors
+[Tivie](http://tivie.github.com/Tivie)
+[Sophie-OS](https://github.com/Sophie-OS)
 
 ## License
 Command Library is released under Apache 2.0 license. For more information, please consult 
