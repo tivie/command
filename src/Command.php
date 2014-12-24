@@ -96,17 +96,42 @@ class Command implements \IteratorAggregate
     public function __construct($flags = null, DetectorInterface $os = null)
     {
         if ($flags !== null) {
-            if (!is_int($flags)) {
-                throw new InvalidArgumentException('integer', 0);
-            }
-            $this->flags = $flags;
+            $this->setFlags($flags);
         }
 
         $this->os = ($os) ? $os : new Detector();
 
         $this->tmpDir = sys_get_temp_dir();
     }
+    
+    /**
+     * Set the flags for this Command
+     *
+     * @param integer $flags
+     * @return $this
+     * @throws InvalidArgumentException If $flags is not an integer
+     */
+    public function setFlags($flags)
+    {
+        if (!is_int($flags)) {
+            throw new InvalidArgumentException('integer', 0);
+        }
+        
+        $this->flags = $flags;
 
+        return $this;
+    }
+
+    /**
+     * Get the current flags set for this Command
+     *
+     * @return int
+     */
+    public function getFlags()
+    {
+        return $this->flags;
+    }
+    
     /**
      * Sets the command to execute (without arguments)
      *

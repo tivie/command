@@ -284,4 +284,45 @@ class CommandTest extends \PHPUnit_Framework_TestCase
         $chainMock->expects($this->once())->method('add')->with($this->equalTo($cmd));
         $cmd->chain($chainMock);
     }
+    
+    /**
+     * @covers \Tivie\Command\Command::setFlags
+     * @covers \Tivie\Command\Command::getFlags
+     */
+    public function testSetGetFlags()
+    {
+        $cmd = new Command();
+
+        // Test 1
+        $flags = FORCE_USE_PROC_OPEN | ESCAPE | DONT_ADD_SPACE_BEFORE_VALUE;
+        $cmd->setFlags($flags);
+        self::assertTrue( (bool) ($cmd->getFlags() & FORCE_USE_PROC_OPEN), "Flag FORCE_USE_PROC_OPEN was not set properly");
+        self::assertTrue( (bool) ($cmd->getFlags() & ESCAPE), "Flag ESCAPE was not set properly");
+        self::assertTrue( (bool) ($cmd->getFlags() & DONT_ADD_SPACE_BEFORE_VALUE), "Flag DONT_ADD_SPACE_BEFORE_VALUE was not set properly");
+
+
+        // Test 2
+        $flags = FORCE_USE_PROC_OPEN | DONT_ADD_SPACE_BEFORE_VALUE;
+        $cmd->setFlags($flags);
+        self::assertTrue( (bool) ($cmd->getFlags() & FORCE_USE_PROC_OPEN), "Flag FORCE_USE_PROC_OPEN was not set properly");
+        self::assertFalse( (bool) ($cmd->getFlags() & ESCAPE), "Flag ESCAPE was not set properly");
+        self::assertTrue( (bool) ($cmd->getFlags() & DONT_ADD_SPACE_BEFORE_VALUE), "Flag DONT_ADD_SPACE_BEFORE_VALUE was not set properly");
+
+        //Test 3 (reset)
+        $flags = 0;
+        $cmd->setFlags($flags);
+        self::assertFalse( (bool) ($cmd->getFlags() & FORCE_USE_PROC_OPEN), "Flag FORCE_USE_PROC_OPEN was not set properly");
+        self::assertFalse( (bool) ($cmd->getFlags() & ESCAPE), "Flag ESCAPE was not set properly");
+        self::assertFalse( (bool) ($cmd->getFlags() & DONT_ADD_SPACE_BEFORE_VALUE), "Flag DONT_ADD_SPACE_BEFORE_VALUE was not set properly");
+    }
+
+    /**
+     * @expectedException \Tivie\Command\Exception\InvalidArgumentException
+     * @covers  \Tivie\Command\Command::setFlags
+     */
+    public function testSetFlagsIAException()
+    {
+        $cmd = new Command();
+        $cmd->setFlags('foo');
+    }
 }
