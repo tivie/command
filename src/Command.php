@@ -312,19 +312,10 @@ class Command implements \IteratorAggregate
     }
 
     /**
-     * Returns a string representation of the command
-     *
-     * @return string
-     */
-    public function __toString()
-    {
-        return $this->getBuiltCommand();
-    }
-
-    /**
      * Runs the command and returns a result object
      *
-     * @param  Result $result [optional] You can pass a result object to store the result of the runned command
+     * @param  Result $result [optional] You can pass a result object to store the result of the run command.
+     * If none is provided, one will be initialized automatically for you.
      * @return Result An object containing the result of the command
      */
     public function run(Result $result = null)
@@ -340,9 +331,11 @@ class Command implements \IteratorAggregate
     }
 
     /**
+     * Start the command chaining process. This command will become the first command in the chain
      *
-     * @param  Chain $chain
-     * @return Chain
+     * @param  Chain $chain [optional] You can provide a pre initialized Chain object that will be used as "chainer".
+     * If none is provided, one will be initialized automatically for you.
+     * @return Chain Returns a Chain Object that you can use to add subsequent commands
      */
     public function chain(Chain $chain = null)
     {
@@ -350,6 +343,29 @@ class Command implements \IteratorAggregate
         $chain->add($this);
 
         return $chain;
+    }
+
+    /**
+     * Retrieve an external iterator
+     * @link http://php.net/manual/en/iteratoraggregate.getiterator.php
+     * @return Traversable An instance of an object implementing <b>Iterator</b> or <b>Traversable</b>
+     */
+    public function getIterator()
+    {
+        $array = $this->arguments;
+        array_unshift($array, $this->getCommand());
+
+        return new \ArrayIterator($array);
+    }
+
+    /**
+     * Returns a string representation of the command
+     *
+     * @return string
+     */
+    public function __toString()
+    {
+        return $this->getBuiltCommand();
     }
 
     /**
@@ -446,20 +462,6 @@ class Command implements \IteratorAggregate
         }
 
         return $tempFile;
-    }
-
-    /**
-     * Retrieve an external iterator
-     * @link http://php.net/manual/en/iteratoraggregate.getiterator.php
-     * @return Traversable An instance of an object implementing <b>Iterator</b> or
-     *                     <b>Traversable</b>
-     */
-    public function getIterator()
-    {
-        $array = $this->arguments;
-        array_unshift($array, $this->getCommand());
-
-        return new \ArrayIterator($array);
     }
 
     private function escapeshellarg($arg)
