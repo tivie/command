@@ -60,15 +60,18 @@ class Chain
     /**
      * Runs the command chain
      *
-     * @return Result[]
+     * @return \Tivie\Command\Result[]
+     * @throws \Tivie\Command\Exception\Exception
+     * @throws \Tivie\Command\Exception\InvalidArgumentException
      */
     public function run()
     {
         //Bogus variable set. The original value is never used, but IDEs complain
         $result = new Result();
         $resultArray = array();
+        $max = count($this->commands);
 
-        for ($i = 0; $i < count($this->commands); ++$i) {
+        for ($i = 0; $i < $max; ++$i) {
             $cmd = $this->commands[$i];
 
             if ($i === 0) {

@@ -352,8 +352,10 @@ class Command implements \IteratorAggregate
      * Runs the command and returns a result object
      *
      * @param  Result $result [optional] You can pass a result object to store the result of the run command.
-     * If none is provided, one will be initialized automatically for you.
-     * @return Result An object containing the result of the command
+     *                        If none is provided, one will be initialized automatically for you.
+     *
+     * @return \Tivie\Command\Result An object containing the result of the command
+     * @throws \Tivie\Command\Exception\Exception
      */
     public function run(Result $result = null)
     {
@@ -477,7 +479,7 @@ class Command implements \IteratorAggregate
 
         //Set CWD
         $prevCwd = getcwd();
-        if ($this->cwd != null) {
+        if ($this->cwd) {
             chdir($this->cwd);
         }
 
@@ -510,7 +512,6 @@ class Command implements \IteratorAggregate
         );
 
         $pipes = array();
-        $exitCode = null;
 
         $process = proc_open($cmd, $spec, $pipes, $this->cwd);
 

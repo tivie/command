@@ -246,7 +246,7 @@ class Argument
      */
     private function parseKey($key)
     {
-        if ($key == null) {
+        if (!$key) {
             throw new InvalidArgumentException('string', 0, 'Cannot be null');
         }
 
