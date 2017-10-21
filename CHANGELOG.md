@@ -3,7 +3,7 @@ Tivie/Command Changelog
 
 ## Version 0.2.2 (2014-12-24)
 
-###Features:
+### Features:
   - **Command**
     - Added *Command::chdir()* method, which enables one to set a new working directory for the command. [2919ee4](https://github.com/tivie/command/commit/2919ee432dc00520d10f4ff095d843057b5f742a)
     - Added *Command::setFlags()* and *Command::getFlags()* method. This enables flag modification after Command object initialization. Credit to [Sophie-OS](https://github.com/Sophie-OS) [9635986](https://github.com/tivie/command/commit/9635986b79a64bb2abc12380bb8e0f21bb02bac0)
@@ -35,14 +35,14 @@ Tivie/Command Changelog
 
 ## Version 0.1.1 (2014-12-16)
 
-###Features:
+### Features:
   - **Command**:
     - Added an extra parameter ($escape) to Command:addArgument(). Now it's possible to escape arguments individually. [2a44daa](https://github.com/tivie/command/commit/2a44daa7028db165bb30a77efa5be6be7a3beddd)
 
 
 ## Version 0.1.0 (2014-12-16)
 
-###Features:
+### Features:
   - Platform independent: run the same code in Unix and Windows
   - Fixes issues with `proc_open` in windows environment
   - Object Oriented command builder with fluent interface

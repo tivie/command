@@ -1,6 +1,9 @@
-Command
+Command [![SensioLabsInsight](https://insight.sensiolabs.com/projects/c78abfc2-5482-4ece-8ae8-4a668b527c33/small.png)](https://insight.sensiolabs.com/projects/c78abfc2-5482-4ece-8ae8-4a668b527c33)
 =======  
-[![Build Status](https://travis-ci.org/tivie/command.svg?branch=master)](https://travis-ci.org/tivie/command) [![Latest Stable Version](https://poser.pugx.org/tivie/command/v/stable.svg)](https://packagist.org/packages/tivie/command) [![License](https://poser.pugx.org/tivie/command/license.svg)](https://packagist.org/packages/tivie/command)
+[![Build Status](https://travis-ci.org/tivie/command.svg?branch=master)](https://travis-ci.org/tivie/command)
+[![Latest Stable Version](https://poser.pugx.org/tivie/command/v/stable.svg)](https://packagist.org/packages/tivie/command)
+[![License](https://poser.pugx.org/tivie/command/license.svg)](https://packagist.org/packages/tivie/command)
+[![SensioLabsInsight](https://insight.sensiolabs.com/projects/e1bbdf6f-d03e-4c3d-a1e5-c7c12f87bd3a/mini.png)](https://insight.sensiolabs.com/projects/e1bbdf6f-d03e-4c3d-a1e5-c7c12f87bd3a)
 
 
 A cross-platform PHP utility library that harmonizes OS differences and executes external programs in a safer way
@@ -10,7 +13,7 @@ Command is a small lightweight utility library that enables you to run external 
 It also harmonizes the differences between Windows and Unix environments, removing the need to create specific
 code for each platform.
 
-##Features
+## Features
 
   - Platform independent: run the same code in Unix and Windows
   - Fixes issues with `proc_open` in windows environment
