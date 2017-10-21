@@ -213,10 +213,10 @@ class Command implements \IteratorAggregate
      */
     public function replaceArgument(Argument $oldArgument, Argument $newArgument)
     {
-        for ($i = 0; $i < count($this->arguments); ++$i) {
+        $max = count($this->arguments);
+        for ($i = 0; $i < $max; ++$i) {
             if ($this->arguments[$i] === $oldArgument) {
                 $this->arguments[$i] = $newArgument;
-
                 return $this;
             }
         }

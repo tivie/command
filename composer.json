@@ -9,7 +9,7 @@
   "minimum-stability": "stable",
   "homepage": "http://tivie.github.com/command/",
   "type": "library",
-  "license": "APACHE-2.0",
+  "license": "Apache-2.0",
   "authors": [
     {
       "name": "Estevão Soares dos Santos",
