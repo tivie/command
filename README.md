@@ -3,7 +3,7 @@ Command [![SensioLabsInsight](https://insight.sensiolabs.com/projects/c78abfc2-5
 [![Build Status](https://travis-ci.org/tivie/command.svg?branch=master)](https://travis-ci.org/tivie/command)
 [![Latest Stable Version](https://poser.pugx.org/tivie/command/v/stable.svg)](https://packagist.org/packages/tivie/command)
 [![License](https://poser.pugx.org/tivie/command/license.svg)](https://packagist.org/packages/tivie/command)
-[![SensioLabsInsight](https://insight.sensiolabs.com/projects/e1bbdf6f-d03e-4c3d-a1e5-c7c12f87bd3a/mini.png)](https://insight.sensiolabs.com/projects/e1bbdf6f-d03e-4c3d-a1e5-c7c12f87bd3a)
+[![SensioLabsInsight](https://insight.sensiolabs.com/projects/c78abfc2-5482-4ece-8ae8-4a668b527c33/mini.png)](https://insight.sensiolabs.com/projects/c78abfc2-5482-4ece-8ae8-4a668b527c33)
 
 
 A cross-platform PHP utility library that harmonizes OS differences and executes external programs in a safer way
