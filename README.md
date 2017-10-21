@@ -98,16 +98,16 @@ yourself a lot, with a lot of conditional checks.
 $cmd = new \Tivie\Command\Command(\Tivie\Command\ESCAPE);
 $cmd->setCommand('ping')
     ->addArgument(
-        new Argument('-n', 3, \Tivie\Command\OS\WINDOWS_FAMILY)
+        new Argument('-n', 3, \Tivie\OS\WINDOWS_FAMILY)
     )
     ->addArgument(
-        new Argument('-l', 32, \Tivie\Command\OS\WINDOWS_FAMILY)
+        new Argument('-l', 32, \Tivie\OS\WINDOWS_FAMILY)
     )
     ->addArgument(
-        new Argument('-c', 3, \Tivie\Command\OS\UNIX_FAMILY)
+        new Argument('-c', 3, \Tivie\OS\UNIX_FAMILY)
     )
     ->addArgument(
-        new Argument('-s', 24, \Tivie\Command\OS\UNIX_FAMILY)
+        new Argument('-s', 24, \Tivie\OS\UNIX_FAMILY)
     )
     ->addArgument(
         new Argument('www.google.com')
