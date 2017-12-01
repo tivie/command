@@ -358,7 +358,7 @@ class CommandTest extends \PHPUnit_Framework_TestCase
         $result = $this->getResultMock();
         $result->expects($this->once())
             ->method('setStdOut')
-            ->with($this->equalTo(realpath(getcwd())));
+            ->with($this->equalTo(realpath(getcwd()), 0.0, 10, false, true));
 
         $cmd->run($result);
 
@@ -371,7 +371,7 @@ class CommandTest extends \PHPUnit_Framework_TestCase
         $result = $this->getResultMock();
         $result->expects($this->once())
             ->method('setStdOut')
-            ->with($this->equalTo($dir));
+            ->with($this->equalTo($dir, 0.0, 10, false, true));
 
         $cmd->run($result);
 
@@ -381,7 +381,7 @@ class CommandTest extends \PHPUnit_Framework_TestCase
         $result = $this->getResultMock();
         $result->expects($this->once())
             ->method('setStdOut')
-            ->with($this->equalTo($dir));
+            ->with($this->equalTo($dir, 0.0, 10, false, true));
 
         $cmd->run($result);
     }
