@@ -98,19 +98,19 @@ yourself a lot, with a lot of conditional checks.
 $cmd = new \Tivie\Command\Command(\Tivie\Command\ESCAPE);
 $cmd->setCommand('ping')
     ->addArgument(
-        new Argument('-n', 3, \Tivie\OS\WINDOWS_FAMILY)
+        new \Tivie\Command\Argument('-n', 3, \Tivie\OS\WINDOWS_FAMILY)
     )
     ->addArgument(
-        new Argument('-l', 32, \Tivie\OS\WINDOWS_FAMILY)
+        new \Tivie\Command\Argument('-l', 32, \Tivie\OS\WINDOWS_FAMILY)
     )
     ->addArgument(
-        new Argument('-c', 3, \Tivie\OS\UNIX_FAMILY)
+        new \Tivie\Command\Argument('-c', 3, \Tivie\OS\UNIX_FAMILY)
     )
     ->addArgument(
-        new Argument('-s', 24, \Tivie\OS\UNIX_FAMILY)
+        new \Tivie\Command\Argument('-s', 24, \Tivie\OS\UNIX_FAMILY)
     )
     ->addArgument(
-        new Argument('www.google.com')
+        new \Tivie\Command\Argument('www.google.com')
     );
     
 $result = $cmd->run();
@@ -133,11 +133,11 @@ Command library supports command chaining
 ```php
 $cmd1 = new \Tivie\Command\Command();
 $cmd1->setCommand('php')
-    ->addArgument(new Argument('-v'));
+    ->addArgument(new \Tivie\Command\Argument('-v'));
 
 $cmd2 = new \Tivie\Command\Command();
 $cmd2->setCommand('echo')
-    ->addArgument(new Argument('foo'));
+    ->addArgument(new \Tivie\Command\Argument('foo'));
     
 $results = $cmd1->chain()
                 ->add($cmd2)
@@ -216,7 +216,7 @@ keyword (placeholder) ***'!PIPE!'*** in the command's argument key and values an
 You will then need to pass true as the third argument in [`Chain::add()`][2] function, same as the above case.
 
 ```php
-$cmd2->addArgument(new Argument('foo'), \Tivie\Command\PIPE_PH); // PIPE_PH = '!PIPE!'
+$cmd2->addArgument(new \Tivie\Command\Argument('foo'), \Tivie\Command\PIPE_PH); // PIPE_PH = '!PIPE!'
 $cmd1->chain()->add($cmd2, \Tivie\Command\RUN_REGARDLESS, true);
 ```
 
