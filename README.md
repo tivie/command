@@ -20,7 +20,6 @@ code for each platform.
   - Object Oriented command builder with fluent interface
   - Argument escaping, for safer command calls
   - Command chaining with support for conditional calls and piping in both Windows and Unix environment
-  - ~~Run commands in background~~ (coming soon)
 
 ## Installation
 You can install it by cloning the git repository or using composer.
